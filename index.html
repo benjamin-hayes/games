@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lanterns, unlimited</title>
+<style>
+:root{--bg:#fff8ef;--fg:#333;--mut:#6a675f;--line:#1c1b19;--btn:#333;--btnfg:#fff8ef;--bad:#d62d20;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Fraunces",Georgia,"Times New Roman",serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 12px 40px}
+h1{font-size:2rem;font-weight:700;margin:4px 0 16px;letter-spacing:-.02em}
+.sub{color:var(--mut);margin:0 0 16px;font-size:.95rem;text-align:center}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:min(94vw,500px);margin-bottom:14px}
+.set{margin-left:auto;position:relative}
+.pop{position:absolute;right:0;top:calc(100% + 6px);z-index:10;background:var(--bg);border:2px solid var(--fg);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:230px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.pop[hidden]{display:none}
+.pop .lbl{justify-content:space-between;gap:12px}
+.time{font-variant-numeric:tabular-nums;font-size:1.4rem;min-width:4.2ch;text-align:center}
+button,select{font:inherit;font-size:.95rem;border-radius:8px;border:2px solid var(--fg);background:transparent;color:var(--fg);padding:6px 12px;cursor:pointer}
+button.main,button[aria-pressed="true"]{background:var(--btn);color:var(--btnfg)}
+button:focus-visible,select:focus-visible,.cell:focus-visible{outline:3px solid #2f6fed;outline-offset:2px}
+#board{display:grid;width:min(94vw,500px);position:relative;aspect-ratio:1;border:4px solid var(--line);touch-action:none;user-select:none}
+.cell{display:flex;align-items:center;justify-content:center;font-size:clamp(1.2rem,6vw,2.2rem);color:#1c1b19;cursor:pointer;position:relative;min-width:0;min-height:0;overflow:hidden;line-height:1;border:1px solid rgba(0,0,0,.25)}
+.cell.bad{background-image:repeating-linear-gradient(45deg,rgba(214,45,32,.75) 0 2px,transparent 2px 9px)}
+.cell .x{position:relative;display:block;width:20%;aspect-ratio:1;font-size:0;opacity:.6}
+.cell .x::before,.cell .x::after{content:"";position:absolute;left:50%;top:50%;width:141%;height:1.5px;background:currentColor;transform:translate(-50%,-50%) rotate(45deg)}
+.cell .x::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.regions{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.regions path{fill:none;stroke:var(--line);stroke-width:4px;stroke-linecap:square;vector-effect:non-scaling-stroke}
+.cell .ghost{opacity:.5}
+.cell .lantern{display:block;width:62%;height:62%;position:relative;z-index:1}
+.cell.lit::after,.cell.litd::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,228,150,.9),rgba(255,214,120,.4));pointer-events:none;opacity:0}
+.cell.lit::after{animation:lightup .8s ease-out var(--dl,0ms) forwards}
+.cell.litd::after{opacity:.22}
+.cell.lit .lantern{animation:glow .6s ease-out forwards}
+.cell.litd .lantern{filter:drop-shadow(0 0 7px rgba(255,196,77,.95))}
+@keyframes lightup{0%{opacity:0}40%{opacity:.6}100%{opacity:.22}}
+@keyframes glow{from{filter:drop-shadow(0 0 0 rgba(255,196,77,0))}to{filter:drop-shadow(0 0 7px rgba(255,196,77,.95))}}
+@media (prefers-reduced-motion:reduce){.cell.lit::after,.cell.lit .lantern{animation:none}}
+.cell .ghostl{display:flex;width:100%;height:100%;align-items:center;justify-content:center;opacity:.5}
+.cell.hq{box-shadow:inset 0 0 0 4px #2f6fed}
+.cell.hx{box-shadow:inset 0 0 0 4px #c77700}
+.cell.hb{box-shadow:inset 0 0 0 4px #d62d20}
+.cell.hs{box-shadow:inset 0 0 0 3px rgba(47,111,237,.5)}
+@media (prefers-reduced-motion:no-preference){.cell.hq,.cell.hx,.cell.hb{animation:pulse 1.1s ease-in-out infinite}}
+@keyframes pulse{50%{filter:brightness(1.25) saturate(1.2)}}
+#msg{min-height:3rem;margin-top:14px;text-align:center;font-size:1.1rem}
+.modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:16px}
+.modal[hidden]{display:none}
+.card{background:var(--bg);border:2px solid var(--fg);border-radius:14px;padding:26px 34px;text-align:center;min-width:240px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.card h2{margin:0;font-size:1.1rem;font-weight:400;color:var(--mut)}
+.card .big{font-size:3.2rem;font-weight:700;font-variant-numeric:tabular-nums;margin:6px 0 18px;letter-spacing:-.02em}
+.card button{font-size:1.05rem;padding:8px 22px}
+.lbl{display:flex;align-items:center;gap:6px;font-size:.95rem}
+button:disabled{opacity:.4;cursor:not-allowed}
+.rules{max-width:500px;color:var(--mut);font-size:.9rem;line-height:1.5;margin-top:8px;text-align:center}
+</style>
+</head>
+<body>
+<h1>Lanterns</h1>
+<div class="bar">
+  <button id="new" class="main">New Puzzle</button>
+  <button id="hint">Hint</button>
+  <button id="clear">Clear</button>
+  <span class="time" id="time">0:00</span>
+  <div class="set">
+    <button id="settings" aria-haspopup="true" aria-expanded="false" aria-controls="pop">Settings</button>
+    <div class="pop" id="pop" hidden>
+      <label class="lbl">Board size <select id="size"><option value="6">6×6</option><option value="7">7×7</option><option value="8" selected>8×8</option><option value="9">9×9</option></select></label>
+      <label class="lbl">Difficulty <select id="mode"><option value="easy">Easy - Auto ×</option><option value="normal" selected>Normal</option><option value="hard">Hard - No ×'s</option></select></label>
+    </div>
+  </div>
+</div>
+<div id="board" role="grid" aria-label="Lanterns board"></div>
+<div id="msg" aria-live="polite"></div>
+<p class="rules" id="rules">Place one lantern in every row, column, and colored region. Lanterns can’t touch, not even diagonally. Tap once to mark ×, twice for a lantern.</p>
+<div class="modal" id="modal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="mt">
+    <h2 id="mt">Solved in</h2>
+    <div class="big" id="mtime">0:00</div>
+    <button id="again" class="main">Play Again</button>
+  </div>
+</div>
+<script>
+const COLORS=['#F4B6B6','#F7CBA4','#F6E3A1','#CDE5A8','#A8DCC3','#A9D8E6','#B5C4EE','#D3BBEA','#EBB9D8'];
+const LANT='<svg class="lantern" viewBox="2 0.75 20 20" aria-hidden="true"><path d="M9.5 5.5V4.5a2.5 2.5 0 0 1 5 0v1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="7.5" y="5.5" width="9" height="2.4" rx="1" fill="currentColor"/><path d="M8 7.9h8c1.6 2.6 1.6 6.6 0 9.2H8c-1.6-2.6-1.6-6.6 0-9.2z" fill="#FFC44D" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><rect x="7.5" y="17.1" width="9" height="2.4" rx="1" fill="currentColor"/></svg>';
+let N=8,G,SOL,M,t0,tick,done,hints,auto=false,hard=false;
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+
+function placeLanterns(n){
+  const cols=[],used=new Set();
+  (function go(r){
+    if(r===n)return true;
+    for(const c of shuffle([...Array(n).keys()])){
+      if(used.has(c)||(r>0&&Math.abs(cols[r-1]-c)<=1))continue;
+      cols[r]=c;used.add(c);
+      if(go(r+1))return true;
+      used.delete(c);
+    }
+    return false;
+  })(0);
+  return cols;
+}
+function grow(n,cols){
+  const g=Array.from({length:n},()=>Array(n).fill(-1));
+  cols.forEach((c,r)=>g[r][c]=r);
+  let left=n*n-n;
+  while(left>0){
+    const cand=[];
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++){
+      if(g[r][c]>=0)continue;
+      for(const[dr,dc]of[[1,0],[-1,0],[0,1],[0,-1]]){
+        const a=r+dr,b=c+dc;
+        if(a>=0&&b>=0&&a<n&&b<n&&g[a][b]>=0)cand.push([r,c,g[a][b]]);
+      }
+    }
+    const[r,c,id]=cand[rnd(cand.length)];
+    g[r][c]=id;left--;
+  }
+  return g;
+}
+function countSolutions(g,n){
+  let cnt=0;const uc=Array(n).fill(false),ur=Array(n).fill(false);
+  (function go(r,prev){
+    if(cnt>1)return;
+    if(r===n){cnt++;return}
+    for(let c=0;c<n;c++){
+      if(uc[c]||ur[g[r][c]]||(r&&Math.abs(prev-c)<=1))continue;
+      uc[c]=ur[g[r][c]]=true;go(r+1,c);uc[c]=ur[g[r][c]]=false;
+    }
+  })(0,-9);
+  return cnt;
+}
+function generate(n){
+  let cols,g;
+  for(let i=0;i<4000;i++){
+    cols=placeLanterns(n);g=grow(n,cols);
+    if(countSolutions(g,n)===1)break;
+  }
+  return{g,cols};
+}
+
+function conflicts(){
+  const bad=new Set(),q=[];
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(M[r][c]===2)q.push([r,c]);
+  for(let i=0;i<q.length;i++)for(let j=i+1;j<q.length;j++){
+    const[a,b]=q[i],[x,y]=q[j];
+    if(a===x||b===y||G[a][b]===G[x][y]||(Math.abs(a-x)<=1&&Math.abs(b-y)<=1)){bad.add(a*N+b);bad.add(x*N+y)}
+  }
+  return{bad,count:q.length};
+}
+let HINT=null,WON=null,winTimer=null;
+const NAMES=['salmon','orange','yellow','green','mint','sky','blue','purple','pink'];
+function clearHint(){if(HINT){HINT=null;document.getElementById('msg').textContent=''}}
+function combos(arr,k){const out=[];(function go(s,cur){if(cur.length===k){out.push(cur.slice());return}for(let i=s;i<arr.length;i++){cur.push(arr[i]);go(i+1,cur);cur.pop()}})(0,[]);return out}
+const joinList=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+function lineCells(kind,i){const o=[];for(let r=0;r<N;r++)for(let c=0;c<N;c++){if((kind==='row'&&r===i)||(kind==='col'&&c===i)||(kind==='reg'&&G[r][c]===i))o.push(r*N+c)}return o}
+function multi(kind,i,r,c,msg){
+  const cells=lineCells(kind,i);
+  const tg=cells.filter(j=>M[Math.floor(j/N)][j%N]===1);
+  return{t:r*N+c,tg,type:'bad',sup:cells.filter(j=>!tg.includes(j)),msg};
+}
+function wrongX(r,c){
+  const el=eliminated();
+  const dead=(kind,i)=>lineCells(kind,i).every(j=>{const a=Math.floor(j/N),b=j%N;return M[a][b]===1||el.has(j)});
+  const me=r*N+c;
+  const opts=[['reg',G[r][c],`The ${NAMES[G[r][c]]} region`],['row',r,`Row ${r+1}`],['col',c,`Column ${c+1}`]];
+  for(const[kind,i,name]of opts){
+    if(dead(kind,i))return multi(kind,i,r,c,`${name} has no square left for its lantern, because every square is crossed out. Remove all the × marks in ${kind==='reg'?'this region':kind==='row'?'this row':'this column'} and look again.`);
+  }
+  return multi('reg',G[r][c],r,c,`One of the × marks in the ${NAMES[G[r][c]]} region is a mistake. Remove all the × marks in this region and look again.`);
+}
+function findHint(){
+  const{bad,count}=conflicts();
+  if(bad.size){const l=[...bad];return{t:l[0],type:'bad',sup:l.slice(1),msg:'These lanterns clash: two share a row, column, or color region, or they touch. Tap one to remove it.'}}
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    if(M[r][c]===2&&SOL[r]!==c)return{t:r*N+c,type:'bad',sup:[],msg:'This lantern can’t be right: the puzzle has no solution with a lantern here. Tap it to remove it.'};
+    if(M[r][c]===1&&SOL[r]===c)return wrongX(r,c);
+  }
+  if(count===N)return null;
+  const elim=eliminated();
+  const rowQ=Array(N).fill(false),colQ=Array(N).fill(false),regQ=Array(N).fill(false);
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(M[r][c]===2){rowQ[r]=colQ[c]=regQ[G[r][c]]=true}
+  const cand=[];
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(M[r][c]===0&&!elim.has(r*N+c))cand.push({r,c,id:G[r][c],i:r*N+c});
+  const openR=[],openC=[],openG=[];
+  for(let i=0;i<N;i++){if(!rowQ[i])openR.push(i);if(!colQ[i])openC.push(i);if(!regQ[i])openG.push(i)}
+  const kinds=[['reg',openG,x=>x.id,i=>`The ${NAMES[i]} region`],['row',openR,x=>x.r,i=>`Row ${i+1}`],['col',openC,x=>x.c,i=>`Column ${i+1}`]];
+  for(const[kind,open,key,name]of kinds)for(const i of open){
+    const cs=cand.filter(x=>key(x)===i);
+    if(cs.length===1)return{t:cs[0].i,type:'lantern',sup:lineCells(kind,i).filter(j=>j!==cs[0].i),msg:`${name(i)} has only one square left where a lantern can go. Place a lantern here.`};
+  }
+  for(let k=1;k<=4;k++){
+    for(const axis of ['row','col']){
+      const A=axis==='row'?x=>x.r:x=>x.c;
+      const openAx=axis==='row'?openR:openC;
+      const ax=axis==='row'?'row':'column',Ax=axis==='row'?'Row':'Column';
+      for(const combo of combos(openG,k)){
+        const cs=cand.filter(x=>combo.includes(x.id));
+        const lines=[...new Set(cs.map(A))].sort((a,b)=>a-b);
+        if(lines.length!==k)continue;
+        const tgt=cand.filter(x=>lines.includes(A(x))&&!combo.includes(x.id));
+        if(!tgt.length)continue;
+        const ll=joinList(lines.map(l=>l+1));
+        const msg=k===1
+          ?`The ${NAMES[combo[0]]} region can only put its lantern in ${ax} ${ll}, so no other square in that ${ax} can hold a lantern. Mark this square ×.`
+          :`The ${joinList(combo.map(g=>NAMES[g]))} regions can only put their lanterns in ${ax}s ${ll}. They use up those ${ax}s between them, so no other square there can hold a lantern. Mark this square ×.`;
+        return{t:tgt[0].i,type:'x',sup:cs.map(x=>x.i),msg};
+      }
+      for(const combo of combos(openAx,k)){
+        const cs=cand.filter(x=>combo.includes(A(x)));
+        const regs=[...new Set(cs.map(x=>x.id))].sort((a,b)=>a-b);
+        if(regs.length!==k)continue;
+        const tgt=cand.filter(x=>regs.includes(x.id)&&!combo.includes(A(x)));
+        if(!tgt.length)continue;
+        const ll=joinList(combo.map(l=>l+1)),rn=joinList(regs.map(g=>NAMES[g]));
+        const msg=k===1
+          ?`${Ax} ${ll} can only get its lantern from the ${rn} region, so that region’s lantern must be in this ${ax}. Mark this square ×.`
+          :`${Ax}s ${ll} can only get their lanterns from the ${rn} regions, so those regions’ lanterns must be in those ${ax}s. Mark this square ×.`;
+        return{t:tgt[0].i,type:'x',sup:cs.map(x=>x.i),msg};
+      }
+    }
+  }
+  const wrong=cand.filter(x=>SOL[x.r]!==x.c);
+  if(wrong.length){
+    const cnt=g=>cand.filter(y=>y.id===g).length;
+    wrong.sort((a,b)=>cnt(a.id)-cnt(b.id));
+    return{t:wrong[0].i,type:'x',sup:[],msg:'No simple shortcut is left, so try a “what if”: imagine a lantern in this square and follow the consequences. The board ends up impossible, so mark it ×.'};
+  }
+  const q=cand[0];
+  return q?{t:q.i,type:'lantern',sup:[],msg:'A lantern goes in this square.'}:null;
+}
+function eliminated(){
+  const s=new Set();
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    if(M[r][c]!==2)continue;
+    for(let a=0;a<N;a++)for(let b=0;b<N;b++){
+      if(a===r&&b===c)continue;
+      if(a===r||b===c||G[a][b]===G[r][c]||(Math.abs(a-r)<=1&&Math.abs(b-c)<=1))s.add(a*N+b);
+    }
+  }
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(M[r][c]===2)s.delete(r*N+c);
+  return s;
+}
+function render(){
+  const{bad,count}=conflicts();
+  const elim=auto?eliminated():new Set();
+  const el=document.getElementById('board');
+  el.style.gridTemplateColumns=`repeat(${N},minmax(0,1fr))`;el.style.gridTemplateRows=`repeat(${N},minmax(0,1fr))`;
+  el.innerHTML='';
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const d=document.createElement('div');
+    const idx=r*N+c;
+    let hc='';
+    if(HINT){if(HINT.t===idx||(HINT.tg&&HINT.tg.includes(idx)))hc=' '+({lantern:'hq',x:'hx',bad:'hb'})[HINT.type];else if(HINT.sup.includes(idx))hc=' hs'}
+    d.className='cell'+(!hard&&bad.has(idx)?' bad':'')+hc+(WON?(WON.settled?' litd':' lit'):'');
+    if(WON&&!WON.settled)d.style.setProperty('--dl',Math.round(350+WON.dist[idx]*90)+'ms');
+    d.tabIndex=0;d.setAttribute('role','gridcell');
+    d.style.background=COLORS[G[r][c]];
+    
+    
+    
+    if(!hard&&bad.has(r*N+c)){d.style.backgroundImage='repeating-linear-gradient(45deg,rgba(214,45,32,.75) 0 2px,transparent 2px 9px)'}
+    const ghost=HINT&&HINT.t===idx&&HINT.type!=='bad'?(HINT.type==='lantern'?'L':'×'):'';
+    d.innerHTML=M[r][c]===2?LANT:(M[r][c]===1||elim.has(idx))?'<span class="x">×</span>':(ghost==='×'?'<span class="x ghost">×</span>':ghost?'<span class="ghostl">'+LANT+'</span>':'');
+    d.dataset.r=r;d.dataset.c=c;
+    d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();cycle(r,c)}};
+    el.appendChild(d);
+  }
+  let p='';
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    if(c<N-1&&G[r][c]!==G[r][c+1])p+=`M${c+1} ${r}L${c+1} ${r+1}`;
+    if(r<N-1&&G[r][c]!==G[r+1][c])p+=`M${c} ${r+1}L${c+1} ${r+1}`;
+  }
+  el.insertAdjacentHTML('beforeend',`<svg class="regions" viewBox="0 0 ${N} ${N}" preserveAspectRatio="none" aria-hidden="true"><path d="${p}" vector-effect="non-scaling-stroke"/></svg>`);
+  if(!done&&count===N&&bad.size===0)win();
+}
+function cycle(r,c){
+  if(done)return;
+  clearHint();
+  if(hard){M[r][c]=M[r][c]===2?0:2}
+  else if(auto&&M[r][c]!==2&&eliminated().has(r*N+c)){M[r][c]=2}else{M[r][c]=(M[r][c]+1)%3}
+  render();
+}
+let painting=false,pend=null,erasing=false;
+const board=document.getElementById('board');
+function cellAt(x,y){const e=document.elementFromPoint(x,y);const c=e&&e.closest&&e.closest('.cell');return c&&board.contains(c)?c:null}
+board.addEventListener('pointerdown',e=>{
+  const c=e.target.closest('.cell');if(!c||done)return;
+  e.preventDefault();
+  try{board.setPointerCapture(e.pointerId)}catch(_){}
+  const r=+c.dataset.r,k=+c.dataset.c;
+  if(M[r][k]===1){pend=[r,k];return}
+  cycle(r,k);
+  painting=M[r][k]===1;
+});
+board.addEventListener('pointermove',e=>{
+  if(done)return;
+  if(pend||erasing){
+    const cc=cellAt(e.clientX,e.clientY);if(!cc)return;
+    const rr=+cc.dataset.r,kk=+cc.dataset.c;
+    if(pend){
+      if(rr===pend[0]&&kk===pend[1])return;
+      clearHint();M[pend[0]][pend[1]]=0;pend=null;erasing=true;
+    }
+    if(M[rr][kk]===1)M[rr][kk]=0;
+    render();return;
+  }
+  if(!painting)return;
+  const c=cellAt(e.clientX,e.clientY);if(!c)return;
+  const r=+c.dataset.r,k=+c.dataset.c;
+  if(M[r][k]===0){clearHint();M[r][k]=1;render()}
+});
+const stopPaint=()=>{painting=false;pend=null;erasing=false};
+board.addEventListener('pointerup',()=>{if(pend){const[r,k]=pend;pend=null;cycle(r,k)}stopPaint()});
+board.addEventListener('pointercancel',stopPaint);
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function win(){
+  done=true;clearInterval(tick);
+  const s=Math.round((Date.now()-t0)/1000);
+  document.getElementById('time').textContent=fmt(s);
+  document.getElementById('mtime').textContent=fmt(s);
+  const q=[];for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(M[r][c]===2)q.push([r,c]);
+  let maxd=0;const dist={};
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){let d=1e9;for(const[a,b]of q)d=Math.min(d,Math.hypot(r-a,c-b));dist[r*N+c]=d;maxd=Math.max(maxd,d)}
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  WON={dist,settled:reduce};
+  render();
+  const total=reduce?0:350+maxd*90+800+400;
+  clearTimeout(winTimer);
+  winTimer=setTimeout(()=>{if(WON)WON.settled=true;document.getElementById('modal').hidden=false;document.getElementById('again').focus()},total);
+}
+function closeModal(){document.getElementById('modal').hidden=true}
+function start(){
+  closeModal();clearTimeout(winTimer);WON=null;
+  N=+document.getElementById('size').value;
+  document.getElementById('msg').textContent='Building a puzzle…';
+  setTimeout(()=>{
+    const p=generate(N);G=p.g;SOL=p.cols;
+    M=Array.from({length:N},()=>Array(N).fill(0));
+    done=false;hints=0;HINT=null;t0=Date.now();clearInterval(tick);
+    tick=setInterval(()=>{document.getElementById('time').textContent=fmt(Math.round((Date.now()-t0)/1000))},500);
+    document.getElementById('time').textContent='0:00';
+    document.getElementById('msg').textContent='';
+    render();
+  },30);
+}
+document.getElementById('new').onclick=start;
+document.getElementById('again').onclick=start;
+document.getElementById('modal').addEventListener('pointerdown',e=>{if(e.target.id==='modal')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+const pop=document.getElementById('pop'),setBtn=document.getElementById('settings');
+function setPop(open){pop.hidden=!open;setBtn.setAttribute('aria-expanded',open)}
+setBtn.onclick=()=>setPop(pop.hidden);
+document.addEventListener('pointerdown',e=>{if(!pop.hidden&&!e.target.closest('.set'))setPop(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pop.hidden){setPop(false);setBtn.focus()}});
+document.getElementById('size').onchange=start;
+document.getElementById('clear').onclick=()=>{if(done)return;clearHint();M=M.map(r=>r.map(()=>0));render()};
+document.getElementById('hint').onclick=()=>{
+  if(done||hard)return;
+  if(!HINT){const h=findHint();if(!h)return;HINT=h;hints++}
+  document.getElementById('msg').textContent=HINT.msg;
+  render();
+};
+document.getElementById('mode').onchange=e=>{
+  const m=e.target.value;
+  auto=m==='easy';hard=m==='hard';
+  if(hard)M=M.map(r=>r.map(v=>v===1?0:v));
+  clearHint();
+  const hb=document.getElementById('hint');
+  hb.disabled=hard;hb.title=hard?'Hints are off in Hard mode':'';
+  document.getElementById('rules').textContent=hard
+    ?'Place one lantern in every row, column, and colored region. Lanterns can’t touch, not even diagonally. Tap a square to place a lantern, tap again to remove it. Hard mode gives no ×, no error marks, and no hints.'
+    :'Place one lantern in every row, column, and colored region. Lanterns can’t touch, not even diagonally. Tap once to mark ×, twice for a lantern.';
+  render();
+};
+start();
+</script>
+</body>
+</html>
